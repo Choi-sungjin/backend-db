@@ -41,6 +41,13 @@ function normalizeTodoPayload(body, { requireTitle }) {
 
 exports.getTodos = async (req, res) => {
   try {
+    // 연결이 끊어진 상태에서 쿼리하면 에러 남 → 개발 시 원인 파악용
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'DB 연결이 되어 있지 않습니다. (readyState: ' + mongoose.connection.readyState + ')',
+      });
+    }
     const todos = await Todo.find().sort({ order: 1, createdAt: -1 }).lean();
 
     return res.status(200).json({
@@ -49,10 +56,15 @@ exports.getTodos = async (req, res) => {
     });
   } catch (err) {
     console.error('할일 목록 조회 오류:', err);
-    return res.status(500).json({
+    const payload = {
       success: false,
       message: '서버 오류가 발생했습니다.',
-    });
+    };
+    // 개발 환경에서는 실제 에러 메시지 포함 → 500 원인 파악용
+    if (process.env.NODE_ENV !== 'production') {
+      payload.error = err.message || String(err);
+    }
+    return res.status(500).json(payload);
   }
 };
 
@@ -80,10 +92,9 @@ exports.getTodoById = async (req, res) => {
     });
   } catch (err) {
     console.error('할일 조회 오류:', err);
-    return res.status(500).json({
-      success: false,
-      message: '서버 오류가 발생했습니다.',
-    });
+    const payload = { success: false, message: '서버 오류가 발생했습니다.' };
+    if (process.env.NODE_ENV !== 'production') payload.error = err.message || String(err);
+    return res.status(500).json(payload);
   }
 };
 
@@ -115,10 +126,9 @@ exports.createTodo = async (req, res) => {
     }
 
     console.error('할일 생성 오류:', err);
-    return res.status(500).json({
-      success: false,
-      message: '서버 오류가 발생했습니다.',
-    });
+    const payload = { success: false, message: '서버 오류가 발생했습니다.' };
+    if (process.env.NODE_ENV !== 'production') payload.error = err.message || String(err);
+    return res.status(500).json(payload);
   }
 };
 
@@ -172,10 +182,9 @@ exports.updateTodo = async (req, res) => {
     }
 
     console.error('할일 수정 오류:', err);
-    return res.status(500).json({
-      success: false,
-      message: '서버 오류가 발생했습니다.',
-    });
+    const payload = { success: false, message: '서버 오류가 발생했습니다.' };
+    if (process.env.NODE_ENV !== 'production') payload.error = err.message || String(err);
+    return res.status(500).json(payload);
   }
 };
 
@@ -203,10 +212,9 @@ exports.deleteTodo = async (req, res) => {
     });
   } catch (err) {
     console.error('할일 삭제 오류:', err);
-    return res.status(500).json({
-      success: false,
-      message: '서버 오류가 발생했습니다.',
-    });
+    const payload = { success: false, message: '서버 오류가 발생했습니다.' };
+    if (process.env.NODE_ENV !== 'production') payload.error = err.message || String(err);
+    return res.status(500).json(payload);
   }
 };
 
